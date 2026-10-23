@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>Open Road – Indian highway drive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Overpass:ital,wght@0,600;0,700;0,800;1,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#0d0a14; --ink:#f6f4f1; --ink2:rgba(246,244,241,.72); --ink3:rgba(246,244,241,.46);
+  --sign:#00693e; --yellow:#ffcc00; --orange:#ff6a00; --blue:#1f4ea0; --red:#c8102e; --green:#30d158; --amber:#ff9f0a;
+  --display:"Overpass","Arial Narrow","Segoe UI",sans-serif;
+  --body:"Inter","Segoe UI",system-ui,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none !important}
+html,body{height:100%;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* ---------- Driving HUD ---------- */
+#hud{pointer-events:none;font-variant-numeric:tabular-nums}
+.hud-tl{position:fixed;top:12px;left:22px;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+.cap{display:none}
+#score{display:block;color:#ffb52e;font:800 48px/.95 var(--display)}
+.sub-row{display:flex;gap:8px;margin-top:4px;font:600 12px/1.2 var(--display);color:rgba(255,255,255,.72)}
+.sub-row b{color:#fff;font-weight:800}
+.hud-tr{position:fixed;top:12px;right:22px;text-align:right;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+#carName,#weatherLabel,#driveViewLabel{display:none}
+.hud-controls{display:flex;justify-content:flex-end;gap:5px;margin-bottom:5px;pointer-events:auto}
+#lives{display:flex;gap:6px;justify-content:flex-end}
+#lives i{display:block;color:#ff4057;font:normal 22px/1 Arial,sans-serif;text-shadow:0 1px 5px rgba(0,0,0,.7)}
+#lives i.lost{color:rgba(255,255,255,.28)}
+#fps{display:block;margin-top:6px;font:500 11px var(--body);color:rgba(210,205,232,.72)}
+.hud-tools{position:fixed;right:18px;bottom:14px;display:flex;align-items:center;gap:5px;pointer-events:auto}
+.dipper-btn{margin:0;padding:4px 7px;border:1px solid rgba(255,255,255,.3);border-radius:4px;background:rgba(13,10,20,.55);
+  font:700 10px var(--display);letter-spacing:.04em;cursor:pointer}
+.dipper-btn kbd{margin-left:3px;padding:1px 3px;border-radius:2px;background:var(--yellow);color:#14110a;font:800 9px var(--body)}
+.dipper-btn.active{background:var(--yellow);border-color:var(--yellow);color:#14110a}
+.audio-btn{margin:0;padding:4px 6px;border:1px solid rgba(255,255,255,.3);border-radius:4px;background:rgba(13,10,20,.55);
+  font:600 9px var(--display);letter-spacing:.02em;cursor:pointer}
+.audio-btn[aria-pressed="false"]{color:var(--ink3);border-color:rgba(255,255,255,.2)}
+.hud-bc{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(320px,48vw);text-align:center;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+#gNum{display:block;color:#fff;font:800 72px/.9 var(--display)}
+.g-unit{display:block;margin-top:3px;color:rgba(220,215,235,.75);font:600 11px var(--body);letter-spacing:.04em}
+#speedBar{display:flex;gap:5px;width:100%;height:10px;margin:12px auto 0}
+#speedBar i{flex:1;transform:skewX(-18deg);background:rgba(12,14,35,.8)}
+#speedBar i.active{background:#61e6eb}
+#speedBar i.active:nth-child(n+7){background:#93d79f}
+#speedBar i.active:nth-child(n+11){background:#ffbf45}
+.hud-bl{position:fixed;left:22px;bottom:24px;width:230px;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+.status{display:flex;align-items:center;gap:7px;font:700 17px var(--display);letter-spacing:0;text-transform:none}
+.status .dot{display:none}
+#steerTrack{position:relative;height:5px;background:rgba(255,255,255,.25);margin:12px 3px 0;border-radius:0}
+#steerTrack::before{content:none}
+#steerDot{position:absolute;top:-3px;left:50%;width:8px;height:12px;margin-left:-4px;border-radius:0;background:#51e8ed;box-shadow:0 0 8px rgba(81,232,237,.55)}
+
+#cam{position:fixed;right:26px;bottom:52px;width:176px;pointer-events:none}
+#cam.off{visibility:hidden}
+#camFrame{position:relative;width:176px;height:132px;border-radius:12px;overflow:hidden;background:#000;border:2px solid rgba(255,255,255,.5);transform:scaleX(-1)}
+#camFrame video,#camFrame canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:fill}
+#camInfo{font-size:12px;color:var(--ink3);margin-top:6px;text-align:right;text-shadow:0 2px 8px rgba(0,0,0,.85)}
+
+#big{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;font:italic 800 clamp(130px,26vw,320px)/1 var(--display);
+  color:var(--yellow);text-shadow:0 8px 0 rgba(0,0,0,.35)}
+#toast{position:fixed;top:96px;left:50%;transform:translateX(-50%);padding:8px 20px;border-radius:4px;background:var(--yellow);color:#14110a;
+  font:800 22px var(--display);letter-spacing:.06em;text-transform:uppercase;opacity:0;pointer-events:none;white-space:nowrap}
+#toast.show{animation:pop 1.1s ease-out}
+@keyframes pop{0%{opacity:0;transform:translate(-50%,8px)}14%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-6px)}}
+#flash{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 40%,rgba(200,16,46,.6))}
+#flash.go{animation:flash .45s ease-out forwards}
+@keyframes flash{0%{opacity:1}100%{opacity:0}}
+@media (prefers-reduced-motion:reduce){#toast.show{animation:none;opacity:1}#flash.go{animation:none;opacity:.6}}
+#pauseTag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:0;background:none;color:#f6f4f1;
+  font:italic 800 42px var(--display);text-transform:none;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+#errorTag{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:min(680px,92vw);padding:12px 18px;border-radius:8px;
+  background:#3d1212;border:1px solid rgba(255,100,90,.6);font-size:13px;line-height:1.45;z-index:9}
+.credits{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:3;display:flex;align-items:center;justify-content:center;gap:16px;
+  width:max-content;max-width:calc(100vw - 32px);padding:11px 18px;border:1px solid rgba(255,255,255,.2);border-radius:12px;
+  background:linear-gradient(135deg,rgba(28,22,36,.96),rgba(13,10,20,.92));box-shadow:0 8px 28px rgba(0,0,0,.35),inset 0 1px rgba(255,255,255,.08);
+  backdrop-filter:blur(12px);color:var(--ink2);text-align:left;overflow:hidden}
+.credits::before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--yellow),var(--orange),var(--red))}
+.credits-brand{display:grid;gap:2px;white-space:nowrap}
+.credits-kicker{color:var(--ink3);font:700 9px var(--body);letter-spacing:.18em;text-transform:uppercase}
+.credits-brand b{color:var(--ink);font:800 16px/1 var(--display);letter-spacing:.1em}
+.credits-brand b span{color:var(--yellow)}
+.credits-divider{width:1px;height:34px;background:rgba(255,255,255,.2)}
+.credits-team{display:grid;grid-template-columns:repeat(2,auto);gap:5px 14px}
+.credits-team span{color:var(--ink2);font:500 10px var(--body);white-space:nowrap}
+.credits-team span::before{content:"";display:inline-block;width:5px;height:5px;margin:0 7px 1px 0;border-radius:50%;background:var(--yellow)}
+
+/* ---------- Screens ---------- */
+.screen{position:fixed;inset:0;display:grid;align-items:center;padding:4vh 6vw;overflow:auto;
+  background:linear-gradient(90deg,rgba(10,6,16,.88) 0%,rgba(10,6,16,.55) 55%,rgba(10,6,16,.2) 100%)}
+.enter{animation:rise .6s cubic-bezier(.2,.8,.2,1) both}
+.enter.d2{animation-delay:.12s}
+@keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.enter{animation:none}}
+
+.menu-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:6vw;align-items:center;width:100%;max-width:1180px;margin:0 auto}
+.route{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.route svg{width:62px;height:68px;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+.route span{font:800 20px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+h1{font:italic 800 clamp(96px,16vw,210px)/0.8 var(--display);text-transform:uppercase;letter-spacing:-.01em;text-shadow:0 7px 0 rgba(0,0,0,.35)}
+h1 span{display:block}
+h1 span+span{color:var(--yellow)}
+.dashes{height:7px;width:min(100%,420px);margin:26px 0 22px;background:repeating-linear-gradient(90deg,var(--ink) 0 38px,transparent 38px 66px)}
+.lead{font-size:clamp(17px,1.8vw,21px);line-height:1.45;color:var(--ink2);max-width:30ch;margin-bottom:28px}
+.route-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin:0 0 22px;max-width:560px}
+.route-options label{display:grid;gap:5px;font:700 12px var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+.route-options select{width:100%;min-width:0;padding:10px 12px;border:1px solid rgba(255,255,255,.45);border-radius:7px;background:#181522;color:var(--ink);font:600 14px var(--body)}
+.route-options select:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.btns{display:flex;gap:14px;flex-wrap:wrap}
+.btn{font:800 24px/1 var(--display);letter-spacing:.04em;text-transform:uppercase;padding:17px 30px;border-radius:10px;cursor:pointer;color:var(--ink);
+  background:transparent;border:2px solid rgba(255,255,255,.55)}
+.btn.primary{background:var(--yellow);border-color:var(--yellow);color:#14110a;box-shadow:0 6px 0 #a88700}
+.btn.primary:active:not(:disabled){transform:translateY(4px);box-shadow:0 2px 0 #a88700}
+.btn:hover:not(:disabled){filter:brightness(1.1)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.btn:disabled{opacity:.55;cursor:default}
+#menuStatus{margin-top:18px;min-height:22px;font-size:14px;line-height:1.45;color:var(--yellow);max-width:56ch}
+.foot{margin-top:14px;font-size:12.5px;line-height:1.55;color:var(--ink3);max-width:56ch}
+
+.board{position:relative;background:var(--sign);border:5px solid var(--ink);border-radius:16px;padding:8px 24px 14px;box-shadow:0 10px 0 rgba(0,0,0,.35)}
+.board::before,.board::after{content:"";position:absolute;bottom:-70px;width:12px;height:64px;background:#7c828c}
+.board::before{left:16%} .board::after{right:16%}
+.board-head{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0 8px;border-bottom:3px solid var(--ink)}
+.board-head b{font:800 38px/1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.board-head i{font:800 18px var(--display);font-style:normal;letter-spacing:.1em;border:2px solid var(--ink);border-radius:5px;padding:1px 8px}
+.row{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:center;padding:16px 0;border-bottom:2px dashed rgba(246,244,241,.55)}
+.row:last-child{border-bottom:0;padding-bottom:6px}
+.row svg{width:42px;height:42px}
+.row b{display:block;font:800 29px/1 var(--display);text-transform:uppercase;letter-spacing:.02em}
+.row span{display:block;margin-top:4px;font-size:14px;line-height:1.4;color:rgba(246,244,241,.9)}
+
+/* ---------- Vehicle selection ---------- */
+.garage{position:fixed;inset:0;display:grid;grid-template-rows:auto 1fr auto;padding:3.5vh 5vw;pointer-events:none;
+  background:linear-gradient(180deg,rgba(10,6,16,.7) 0%,rgba(10,6,16,0) 22%,rgba(10,6,16,0) 48%,rgba(10,6,16,.9) 100%)}
+.garage > *{pointer-events:auto}
+.g-sign{display:inline-block;background:var(--sign);border:4px solid var(--ink);border-radius:10px;padding:8px 22px;font:800 34px/1 var(--display);text-transform:uppercase;letter-spacing:.04em;box-shadow:0 6px 0 rgba(0,0,0,.35)}
+.g-bottom{display:grid;grid-template-columns:230px minmax(0,1fr) auto;gap:22px;align-items:end}
+.g-info h3{font:italic 800 38px/1 var(--display);text-transform:uppercase}
+.g-info p{margin:6px 0 12px;font-size:14px;line-height:1.4;color:var(--ink2)}
+.swatches{display:flex;gap:10px}
+.sw{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.4);cursor:pointer}
+.sw.sel{border-color:var(--yellow);box-shadow:0 0 0 3px rgba(255,204,0,.35)}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-height:25vh;overflow-y:auto;align-self:end}
+.car-card{text-align:left;cursor:pointer;background:rgba(14,10,22,.88);border:3px solid rgba(255,255,255,.28);border-radius:12px;padding:12px 14px 14px}
+.car-card:hover{border-color:rgba(255,255,255,.7)}
+.car-card.sel{border-color:var(--yellow);background:#1c1626;transform:translateY(-6px)}
+.car-card:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.cn{display:block;font:800 22px/1.05 var(--display);text-transform:uppercase;margin-bottom:6px}
+.st{display:grid;grid-template-columns:72px 1fr;gap:8px;align-items:center;margin-top:6px;font-size:11px;letter-spacing:.04em;color:var(--ink2)}
+.bar{height:6px;background:rgba(255,255,255,.18);border-radius:3px;overflow:hidden}
+.bar b{display:block;height:100%;background:var(--yellow)}
+.g-actions{display:flex;gap:12px}
+
+/* ---------- Game over: a road-works barricade with striped bars ---------- */
+.over{place-items:center;background:rgba(10,6,16,.78)}
+.stripe{height:26px;background:repeating-linear-gradient(-45deg,var(--orange) 0 24px,#f6f4f1 24px 48px)}
+.over-card{width:min(660px,100%);text-align:center}
+.over-body{background:#120d1b;border-left:4px solid #f6f4f1;border-right:4px solid #f6f4f1;padding:30px 30px 26px}
+#overNew{display:inline-block;margin-bottom:10px;padding:4px 14px;background:var(--yellow);color:#14110a;font:800 20px var(--display);letter-spacing:.14em;text-transform:uppercase;transform:skewX(-12deg)}
+h2{font:italic 800 clamp(80px,13vw,140px)/0.85 var(--display);text-transform:uppercase;text-shadow:0 6px 0 rgba(0,0,0,.4)}
+.plaques{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:26px 0 24px}
+.plaque{background:var(--sign);border:3px solid var(--ink);border-radius:10px;padding:10px 6px 12px}
+.plaque span{display:block;font:700 14px var(--display);letter-spacing:.2em;text-transform:uppercase;color:rgba(246,244,241,.85)}
+.plaque b{display:block;margin-top:2px;font:italic 800 42px/1 var(--display)}
+.holdWrap{height:6px;margin:0 0 20px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.22) 0 22px,transparent 22px 36px);position:relative;overflow:hidden}
+#holdBar{position:absolute;left:0;top:0;height:100%;width:0;background:var(--yellow)}
+.over .btns{justify-content:center}
+
+@media (max-width:980px){
+  .menu-grid{grid-template-columns:1fr;gap:56px}
+  .board{max-width:520px}
+  .g-bottom{grid-template-columns:1fr}
+  .cards{grid-template-columns:repeat(2,1fr);max-height:32vh;overflow-y:auto}
+  .hud-bl{display:block;width:170px} #cam{width:120px;right:14px} #camFrame{width:120px;height:90px}
+  #score{font-size:42px}
+  .hud-tools{right:12px;bottom:12px}
+  .hud-bc{width:min(280px,42vw)}
+}
+@media (max-width:560px){
+  .hud-tl{top:9px;left:12px} .hud-tr{top:9px;right:12px}
+  #score{font-size:36px} .sub-row{font-size:10px}
+  .hud-bl{left:12px;bottom:14px;width:120px}
+  .status{font-size:13px} #steerTrack{margin-top:9px}
+  .hud-bc{bottom:20px;width:42vw}
+  #gNum{font-size:56px} #speedBar{height:8px;gap:3px;margin-top:8px}
+  .hud-tools{right:8px;bottom:8px;gap:3px}
+  .dipper-btn{font-size:8px;padding:3px 4px}
+  .audio-btn{font-size:7px;padding:3px 4px}
+  .credits{bottom:6px;gap:10px;padding:9px 12px}
+  .credits-kicker{font-size:7px}
+  .credits-brand b{font-size:12px}
+  .credits-divider{height:30px}
+  .credits-team{gap:4px 8px}
+  .credits-team span{font-size:8px}
+  .credits-team span::before{width:4px;height:4px;margin-right:4px}
+  .route-options{grid-template-columns:1fr 1fr;gap:8px}
+  .route-options label{font-size:10px}
+  .route-options select{padding:9px 7px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="flash" hidden></div>
+
+<div id="hud" hidden>
+  <div class="hud-tl">
+    <span class="cap">Score</span><b id="score">0</b>
+    <div class="sub-row"><span>BEST <b id="best">0</b></span><span><b id="dist">0.00</b> KM</span></div>
+  </div>
+  <div class="hud-tr">
+    <div class="hud-controls">
+      <button id="viewBtn" class="audio-btn" type="button" aria-label="Change camera view">VIEW · CHASE [V]</button>
+      <button id="pauseBtn" class="audio-btn" type="button" aria-label="Pause the game">PAUSE</button>
+    </div>
+    <b id="carName"></b><span id="weatherLabel">WEATHER · CLEAR</span><span id="driveViewLabel">VIEW · CHASE</span><div id="lives" aria-label="Vehicle integrity"></div><span id="fps"></span>
+  </div>
+  <div class="hud-tools">
+    <button id="dipperBtn" class="dipper-btn" type="button" aria-label="Flash high beams and ask nearby traffic to move left">DIPPER <kbd>L</kbd></button>
+    <button id="audioBtn" class="audio-btn" type="button" aria-label="Mute all game sounds" aria-pressed="true">SOUND ON</button>
+    <button id="musicBtn" class="audio-btn" type="button" aria-label="Turn background music off" aria-pressed="true">MUSIC ON</button>
+    <button id="carAudioBtn" class="audio-btn" type="button" aria-label="Turn car engine sound off" aria-pressed="true">CAR ON</button>
+  </div>
+  <div class="hud-bc">
+    <span id="gNum">0</span>
+    <div id="speedBar" role="meter" aria-label="Speed" aria-valuemin="0" aria-valuemax="240" aria-valuenow="0">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <span class="g-unit">km/h</span>
+  </div>
+  <div class="hud-bl">
+    <div class="status"><span class="dot" id="ctlDot"></span><span id="ctlMode">Keyboard</span></div>
+    <div id="steerTrack"><div id="steerDot"></div></div>
+  </div>
+</div>
+
+<div id="cam" class="off">
+  <div id="camFrame"><video id="video" playsinline muted></video><canvas id="pv" width="176" height="132"></canvas></div>
+  <div id="camInfo"></div>
+</div>
+
+<div id="big"></div>
+<div id="toast"></div>
+<div id="pauseTag" hidden>Paused</div>
+<div id="errorTag" hidden role="alert"></div>
+
+<section id="menu" class="screen">
+  <div class="menu-grid">
+    <div class="enter">
+      <div class="route" aria-hidden="true">
+        <svg viewBox="0 0 100 110"><path d="M50 4C62 12 80 12 94 8c2 32-2 68-44 98C8 76 4 40 6 8c14 4 32 4 44-4z" fill="#fff"/><path d="M50 9c12 8 28 8 40 4 2 29-2 59-40 87C12 72 8 42 10 13c12 4 28 4 40-4z" fill="#138808"/><path d="M50 9c12 8 28 8 40 4l.5 17H9.5L10 13c12 4 28 4 40-4z" fill="#ff9933"/><path d="M10 30h80v24H10z" fill="#fff"/><circle cx="50" cy="42" r="8" fill="none" stroke="#1f4ea0" stroke-width="2"/><text x="50" y="82" text-anchor="middle" font-family="Overpass,Arial,sans-serif" font-weight="800" font-size="30" fill="#fff">44</text></svg>
+        <span>NH 44 · India</span>
+      </div>
+      <h1><span>Open</span><span>Road</span></h1>
+      <div class="dashes" aria-hidden="true"></div>
+      <p class="lead">Choose where to begin, then drive through changing Indian landscapes, road types, and all six cycling weather conditions.</p>
+      <div class="route-options" aria-label="Route options">
+        <label for="regionSelect">Starting region
+          <select id="regionSelect">
+            <option value="0">Ahmedabad</option>
+            <option value="1">Village</option>
+            <option value="2">Kanniyakumari</option>
+            <option value="3">Thar Desert</option>
+            <option value="4">Rainforest</option>
+            <option value="5">Srinagar</option>
+          </select>
+        </label>
+        <label for="roadSelect">Road type
+          <select id="roadSelect">
+            <option value="highway">Highway</option>
+            <option value="village">Village road</option>
+            <option value="seashore">Seashore</option>
+            <option value="sealink">Sea link</option>
+          </select>
+        </label>
+        <label for="weatherSelect">Starting weather
+          <select id="weatherSelect">
+            <option value="0">Clear</option>
+            <option value="1">Cloudy</option>
+            <option value="2">Rain</option>
+            <option value="3">Thunderstorm</option>
+            <option value="4">Snow</option>
+            <option value="5">Fog</option>
+          </select>
+        </label>
+        <label for="conditionsSelect">Route conditions
+          <select id="conditionsSelect">
+            <option value="specific">Keep selected terrain and weather</option>
+            <option value="cycling">Cycle terrain and weather</option>
+          </select>
+        </label>
+        <label for="timeOfDaySelect">Time of day
+          <select id="timeOfDaySelect">
+            <option value="auto" selected>Automatic · night arrives soon</option>
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening">Evening</option>
+            <option value="night">Night</option>
+          </select>
+        </label>
+      </div>
+      <div class="btns">
+        <button id="btnHand" class="btn primary">Start with hands</button>
+        <button id="btnKeys" class="btn">Keyboard</button>
+      </div>
+      <p id="menuStatus" role="status"></p>
+      <p class="foot">Game audio includes background music, engine revs, deceleration and braking effects, road and weather sounds, dipper and impact sounds. Use SOUND, MUSIC and CAR ON/OFF independently while driving. Your camera feed stays on this device and is never uploaded. With hand tracking, show a peace sign (index and middle fingers raised) to flash the dipper. Keyboard: arrows steer, W or Up accelerates, release to slow down, Down or S brakes, L flashes the dipper, and V cycles Chase, Hood, Overhead, Left Side and Rear camera angles. The game renders at your display's native resolution; press Q to manually cycle lower render resolutions. P pauses, H toggles hand tracking, and F toggles fullscreen. Speed and distance use km/h and kilometres.</p>
+      <p class="foot" id="ver" style="margin-top:6px"></p>
+    </div>
+    <aside class="board enter d2" aria-label="How to drive">
+      <div class="board-head"><b>How to drive</b><i>NH 44</i></div>
+      <div class="row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f6f4f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5"/><path d="M3.5 10.5l6.5 1M20.5 10.5l-6.5 1M12 14.5V21"/></svg>
+        <div><b>Steer</b><span>One hand left and right, or two hands like a wheel</span></div>
+      </div>
+      <div class="row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f6f4f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-6-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+        <div><b>Drive and brake</b><span>Open hand to go, close your fist to brake</span></div>
+      </div>
+      <div class="row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f6f4f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 21.5 20h-19z"/><path d="M12 10v4.5M12 17.4v.1"/></svg>
+        <div><b>Keep left</b><span>Overtake on the right. Watch for lane changes and roadwork</span></div>
+      </div>
+    </aside>
+  </div>
+  <div class="credits" aria-label="Game credits">
+    <div class="credits-brand">
+      <span class="credits-kicker">A game by</span>
+      <b>GLITCH <span>STUDIO</span></b>
+    </div>
+    <span class="credits-divider" aria-hidden="true"></span>
+    <div class="credits-team" aria-label="Created by Yug Belsare, Shivam Vala, Parv Patel, and Jay Prajapati">
+      <span>Yug Belsare</span>
+      <span>Shivam Vala</span>
+      <span>Parv Patel</span>
+      <span>Jay Prajapati</span>
+    </div>
+  </div>
+</section>
+
+<section id="garage" class="garage" hidden>
+  <div class="enter"><span class="g-sign">Select vehicle</span></div>
+  <div></div>
+  <div class="g-bottom enter d2">
+    <div class="g-info"><h3 id="gName"></h3><p id="gBlurb"></p><div id="swatches" class="swatches"></div></div>
+    <div id="cards" class="cards"></div>
+    <div class="g-actions"><button id="btnBack" class="btn">Back</button><button id="btnDrive" class="btn primary">Drive</button></div>
+  </div>
+</section>
+
+<section id="over" class="screen over" hidden>
+  <div class="over-card enter">
+    <div class="stripe"></div>
+    <div class="over-body">
+      <div id="overNew" hidden>New best</div>
+      <h2>Game Over</h2>
+      <div class="plaques">
+        <div class="plaque"><span>Score</span><b id="overScore">0</b></div>
+        <div class="plaque"><span>Best</span><b id="overBest">0</b></div>
+        <div class="plaque"><span>Distance</span><b id="overDist">0 mi</b></div>
+      </div>
+      <div class="holdWrap" id="holdWrap"><div id="holdBar"></div></div>
+      <div class="btns"><button id="btnAgain" class="btn primary">Drive again</button><button id="btnGarage" class="btn">Change car</button></div>
+      <p class="foot" id="overHint" style="margin:14px auto 0"></p>
+    </div>
+    <div class="stripe"></div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="game.js?v=33"></script>
+</body>
+</html>
