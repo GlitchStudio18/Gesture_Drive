@@ -1,9 +1,9 @@
 /* ==========================================================================
-   OPEN ROAD – hand-driven interstate at dusk (prototype v0.4)
-   Three.js r128 (classic script) + MediaPipe Tasks Vision HandLandmarker (runs in a Web Worker when possible).
-   Speed first: opaque canvas, 2 lights, no shadows / transparency / post effects, simple scenery, instanced props,
-   internal resolution capped and lowered automatically, hand tracking off the main thread.
-   ========================================================================== */
+    OPEN ROAD – hand-driven interstate at dusk (prototype v0.4)
+    Three.js r128 (classic script) + MediaPipe Tasks Vision HandLandmarker (runs in a Web Worker when possible).
+    Speed first: opaque canvas, 2 lights, no shadows / transparency / post effects, simple scenery, instanced props,
+    internal resolution capped and lowered automatically, hand tracking off the main thread.
+    ========================================================================== */
 (() => {
 'use strict';
 
@@ -311,101 +311,6 @@ const vcolMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 }
 
 /* ------------------------------ INDIAN HIGHWAY SCENERY ------------------ */
-function monumentMesh(parts, phase) {
-  const count = 2;
-  const geo = mergeGeos(parts), mesh = new THREE.InstancedMesh(geo, vcolMat, count);
-  makeScatter(mesh, Array.from({ length: count }, (_, i) => ({
-    z: BACK_Z - (i * 6 + phase + 0.5) * (SPAN / (count * 6)),
-  })), (it) => {
-    it.x = it.idx % 2 ? -19 : 19;
-    it.sx = it.sy = it.sz = 0.72;
-  });
-}
-{
-  const dome = new THREE.SphereGeometry(1, 12, 8);
-  const domePart = (x, y, z, sx, sy, sz, c) => ({ g: dome, x, y, z, sx, sy, sz, c });
-  const minaret = new THREE.CylinderGeometry(0.24, 0.38, 9, 8); minaret.translate(0, 4.5, 0);
-  const taj = [
-    B(13, 1, 10, 0, 0.5, 0, 0xc9bda7), B(9.5, 6, 7.2, 0, 4, 0, 0xe8e0d0),
-    domePart(0, 7.5, 0, 2.5, 2.8, 2.5, 0xf1e8d5),
-    B(7.5, 0.25, 7.5, 0, 9.4, 0, 0xded3c1),
-  ];
-  for (const x of [-5.2, 5.2]) for (const z of [-3.6, 3.6]) {
-    taj.push({ g: minaret, x, y: 0, z, c: 0xe8e0d0 });
-    taj.push(domePart(x, 9.4, z, 0.55, 0.72, 0.55, 0xf1e8d5));
-  }
-  taj.push(B(1.2, 4.2, 0.12, 0, 3, -3.66, 0x26313a));
-  monumentMesh(taj, 0);
-
-  const gate = [
-    B(2, 8, 1.4, -4, 4, 0, 0x9a7050), B(2, 8, 1.4, 4, 4, 0, 0x9a7050),
-    B(10.5, 2, 1.8, 0, 9, 0, 0xa77b57), B(8.8, 0.5, 1.9, 0, 10.2, 0, 0x8b674c),
-    B(0.5, 1.3, 1.4, -2.6, 4.6, 0, 0x8f694d), B(0.5, 1.3, 1.4, 2.6, 4.6, 0, 0x8f694d),
-  ];
-  for (const x of [-4, 4]) gate.push(domePart(x, 8.1, 0, 1.1, 0.6, 0.9, 0xa77b57));
-  monumentMesh(gate, 1);
-
-  const tower = [];
-  for (let i = 0; i < 5; i++) {
-    const h = 2.6, r = 1.15 - i * 0.16;
-    const section = new THREE.CylinderGeometry(r * 0.82, r, h, 9); section.translate(0, h / 2 + i * h, 0);
-    tower.push({ g: section, y: 0, c: i % 2 ? 0xb97846 : 0xc68b55 });
-    tower.push(B(r * 1.9, 0.18, r * 1.9, 0, (i + 1) * h, 0, 0x8e6040));
-  }
-  tower.push(domePart(0, 13.6, 0, 0.42, 0.55, 0.42, 0x8e6040));
-  monumentMesh(tower, 2);
-
-  const gateway = [
-    B(2.2, 8.2, 1.6, -4.2, 4.1, 0, 0x9b6950), B(2.2, 8.2, 1.6, 4.2, 4.1, 0, 0x9b6950),
-    B(10.8, 2, 2.0, 0, 9.2, 0, 0xa87857), B(0.5, 6.0, 0.18, -2.55, 3.0, -0.84, 0x543d31),
-    B(0.5, 6.0, 0.18, 2.55, 3.0, -0.84, 0x543d31),
-    domePart(-4.2, 8.6, 0, 1.0, 0.72, 1.0, 0xb48762),
-    domePart(4.2, 8.6, 0, 1.0, 0.72, 1.0, 0xb48762),
-  ];
-  monumentMesh(gateway, 3);
-
-  const hawa = [B(9.2, 1, 1.2, 0, 0.5, 0, 0xc88d61)];
-  for (let row = 0; row < 5; row++) {
-    const width = 9 - row * 1.25, y = 1.55 + row * 1.45, columns = 3 + row;
-    hawa.push(B(width, 1.2, 0.9, 0, y, 0, row % 2 ? 0xd59b70 : 0xc88d61));
-    for (let col = 0; col < columns; col++) {
-      const x = -width * 0.42 + col * width * 0.84 / Math.max(1, columns - 1);
-      hawa.push(B(0.34, 0.48, 0.06, x, y, -0.49, 0x533a31));
-      hawa.push(B(0.5, 0.12, 0.14, x, y + 0.34, -0.52, 0xe0ad7e));
-    }
-  }
-  hawa.push(B(3.0, 0.55, 1.1, 0, 8.95, 0, 0xd59b70));
-  monumentMesh(hawa, 4);
-
-  const wheel = new THREE.TorusGeometry(1.35, 0.16, 6, 14);
-  const sunTemple = [B(11, 0.8, 7, 0, 0.4, 0, 0x9c6842)];
-  for (let i = 0; i < 6; i++) {
-    const width = 10.5 - i * 1.45;
-    sunTemple.push(B(width, 1.15, 6.3 - i * 0.72, 0, 1.35 + i * 1.12, 0, i % 2 ? 0xb77b4c : 0xa96f43));
-  }
-  sunTemple.push({ g: wheel, x: -3.2, y: 2.2, z: -3.25, c: 0x593c2b }, { g: wheel, x: 3.2, y: 2.2, z: -3.25, c: 0x593c2b });
-  monumentMesh(sunTemple, 5);
-
-  const heritageNames = ['TAJ MAHAL', 'INDIA GATE', 'QUTUB MINAR', 'GATEWAY OF INDIA', 'HAWA MAHAL', 'KONARK TEMPLE'];
-  heritageNames.forEach((name, phase) => {
-    const tex = clampTex(canvasTex(512, 192, (g, w, h) => {
-      g.fillStyle = '#783c28'; g.fillRect(0, 0, w, h);
-      g.strokeStyle = '#f0d7a8'; g.lineWidth = 10; g.strokeRect(8, 8, w - 16, h - 16);
-      g.fillStyle = '#f4e5c9'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.font = 'bold 28px Arial, Helvetica, sans-serif'; g.fillText('INDIAN HERITAGE ROUTE', w / 2, 55);
-      g.font = 'bold 48px Arial, Helvetica, sans-serif'; g.fillText(name, w / 2, 125);
-    }));
-    const board = new THREE.PlaneGeometry(5.2, 1.9); board.translate(0, 3.8, 0.12);
-    const posts = mergeGeos([B(0.18, 2.9, 0.18, -2.0, 1.45, 0, 0x6f513a), B(0.18, 2.9, 0.18, 2.0, 1.45, 0, 0x6f513a)]);
-    const count = 2, items = Array.from({ length: count }, (_, i) => ({
-      z: BACK_Z + 7 - (i * 6 + phase + 0.5) * (SPAN / (count * 6)),
-    }));
-    makeScatter([new THREE.InstancedMesh(posts, vcolMat, count), new THREE.InstancedMesh(board, new THREE.MeshBasicMaterial({ map: tex }), count)], items, (it) => {
-      it.x = it.idx % 2 ? -12.5 : 12.5;
-      it.sx = it.sy = it.sz = 0.82;
-    }, true);
-  });
-}
 {
   const trunk = new THREE.CylinderGeometry(0.35, 0.6, 5, 7); trunk.translate(0, 2.5, 0);
   const canopy = new THREE.SphereGeometry(1, 7, 5);
@@ -697,7 +602,7 @@ applyPlayerCar();
 /* ------------------------------ TRAFFIC + OBSTACLES --------------------- */
 const obstacles = [];
 // Mix of everyday cars (including compact hatchbacks) and luxury cars; semis and buses stay in the right lanes.
-const WEIGHTS = ['hatch', 'hatch', 'sedan', 'sedan', 'suv', 'suv', 'pickup', 'lux', 'sports', 'luxsuv', 'semi', 'bus', 'bike', 'ambassador', 'ambassador', 'innova', 'innova', 'creta', 'sumo', 'sumo'];
+const WEIGHTS = ['hatch', 'hatch', 'sedan', 'sedan', 'suv', 'suv', 'pickup', 'lux', 'sports', 'luxsuv', 'semi', 'bus', 'bike', 'ambassador', 'ambassador', 'innova', 'innova', 'creta', 'sumo', 'suv'];
 const LANES = { hatch: [0, 3], sedan: [0, 3], suv: [0, 3], pickup: [0, 3], lux: [0, 3], sports: [0, 3], luxsuv: [0, 3], semi: [0, 1], bus: [0, 1], bike: [0, 3], ambassador: [0, 3], innova: [0, 3], creta: [0, 3], sumo: [0, 3] };
 const SPORTY = { lux: 1, sports: 1, luxsuv: 1 };
 
@@ -707,7 +612,7 @@ for (let i = 0; i < 20; i++) {
   const brake = new THREE.Mesh(lampBoxes, brakeMat), ind = new THREE.Mesh(indGeo, indMat);
   ind.visible = false;
   mesh.add(brake, ind); scene.add(mesh);
-  obstacles.push({ mesh, kind: 'veh', brake, brakeMat, ind, indX: 0.8, active: false, type: 'hatch', x: 0, y: 0, z: 0, v: 0, vd: 20, vx: 0, hw: 1, hl: 2, lane: 1, lc: null, signal: 0, think: 0, brakeT: 0, yieldUntil: 0, pers: 'normal', braking: false, passed: false, spec: VSPEC.hatch });
+  obstacles.push({ mesh, kind: 'veh', brake, brakeMat, ind, indX: 0.8, active: false, type: 'hatch', x: 0, y: 0, z: 0, v: 0, vd: 20, vx: 0, hw: 1, hl: 2, lane: 1, lc: null, signal: 0, think: 0, brakeT: 0, yieldUntil: 0, passed: false });
 }
 for (const sub of ['jersey', 'jersey', 'jersey', 'barricade', 'barricade', 'barricade', 'cones', 'cones', 'cones']) {
   const mesh = new THREE.Mesh(BARRIER[sub].geo, vehMat); mesh.visible = false; scene.add(mesh);
@@ -775,7 +680,7 @@ function renderGarage() {
   $('cards').innerHTML = CARS.map((k, i) => '<button class="car-card' + (i === selCar ? ' sel' : '') + '" data-i="' + i + '"><span class="cn">' + k.name + '</span>' +
     statRow('Speed', k.st[0]) + statRow('Handling', k.st[1]) + statRow('Strength', k.st[2]) + '</button>').join('');
   $('gName').textContent = c.name; $('gBlurb').textContent = c.blurb;
-  $('swatches').innerHTML = c.colors.map((hex, i) => '<button class="sw' + (i === selColor ? ' sel' : '') + '" data-c="' + i + '" style="background:#' + ('000000' + hex.toString(16)).slice(-6) + '" aria-label="Colour ' + (i + 1) + '"></button>').join('');
+  $('swatches').innerHTML = c.colors.map((hex, i) => '<button class="sw' + (i === selColor ? ' sel' : '') + '" data-c="' + i + '" style="background:#' + ('000000' + hex.toString(16)).slice(-6) + '" aria-label="Color"></button>').join('');
 }
 function changeCar(d) { selCar = (selCar + d + CARS.length) % CARS.length; selColor = 0; applyPlayerCar(); renderGarage(); }
 function changeColor(d) { const n = CARS[selCar].colors.length; selColor = (selColor + d + n) % n; applyPlayerCar(); renderGarage(); }
@@ -859,7 +764,7 @@ async function initMainThreadTracking() {
 }
 
 async function initHandTracking() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Camera access is unavailable. Open the game from http://localhost:8000 instead of opening the file directly.');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('Camera access is unavailable. Open the game from http://localhost:8000 instead of opening the file directly');
   $('menuStatus').textContent = 'Waiting for camera permission…';
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: 320 }, height: { ideal: 240 }, frameRate: { ideal: 30 }, facingMode: 'user' }, audio: false,
@@ -878,7 +783,7 @@ function trackLoop() {
   if (!trackerReady() || !handMode || paused || document.hidden || state === 'menu' || video.readyState < 2) return;
   const t = performance.now();
   if (worker) {
-    if (workerBusy) { if (t - workerSince > 3000) workerBusy = false; return; }          // watchdog: never wait forever on a lost reply
+    if (workerBusy) { if (t - workerSince > 3000) workerBusy = false; return; }
     if (t - lastTrack < 1000 / CFG.hand.maxHz || video.currentTime === lastVideoTime) return;
     lastTrack = t; lastVideoTime = video.currentTime; workerBusy = true; workerSince = t;
     const send = (bmp) => worker.postMessage({ type: 'frame', bitmap: bmp, ts: t }, [bmp]);
@@ -886,7 +791,7 @@ function trackLoop() {
       .catch(() => createImageBitmap(video).then(send)).catch(() => { workerBusy = false; });
     return;
   }
-  const gap = clamp(trackMs * 4.5, 1000 / CFG.hand.maxHz, 180);            // main-thread fallback: limit the share of time it can take
+  const gap = clamp(trackMs * 4.5, 1000 / CFG.hand.maxHz, 180);
   if (t - lastTrack < gap || video.currentTime === lastVideoTime) return;
   lastTrack = t; lastVideoTime = video.currentTime;
   try {
@@ -905,7 +810,7 @@ function handInfo(lm, AR) {
   const py = (lm[0].y + lm[5].y + lm[9].y + lm[13].y + lm[17].y) / 5;
   const palm = d(lm[0], lm[9]) || 1e-3;
   const tips = (d(lm[0], lm[8]) + d(lm[0], lm[12]) + d(lm[0], lm[16]) + d(lm[0], lm[20])) / 4;
-  return { x: 1 - px, y: py, ratio: tips / palm };           // x is mirrored so moving right = positive
+  return { x: 1 - px, y: py, ratio: tips / palm };
 }
 
 function onHandResults(L) {
@@ -915,18 +820,17 @@ function onHandResults(L) {
   const info = L.map((lm) => handInfo(lm, AR)).sort((a, b) => a.x - b.x);
   H.lastSeen = t; H.count = info.length;
 
-  // Brake only when every visible hand is closed, so gripping an imaginary wheel does not brake.
   H.ratio = lerp(H.ratio, Math.max(...info.map((i) => i.ratio)), 0.5);
   H.fistFrames = H.ratio < CFG.hand.fistRatio ? H.fistFrames + 1 : 0;
   H.fist = H.fistFrames >= 2;
 
   if (info.length >= 2) {
     const a = info[0], b = info[info.length - 1];
-    const ang = Math.atan2(b.y - a.y, (b.x - a.x) * AR);       // right hand lower = clockwise = steer right
+    const ang = Math.atan2(b.y - a.y, (b.x - a.x) * AR);
     H.wheel = lerp(H.wheel, clamp(ang / (CFG.hand.wheelMaxDeg * Math.PI / 180), -1, 1), 0.5);
     H.x = (a.x + b.x) / 2; H.mode = 'wheel'; H.wheelSeen = t;
   } else if (t - H.wheelSeen < 0.35) {
-    H.mode = 'wheel';                                           // one hand dropped out for a moment: hold the wheel angle
+    H.mode = 'wheel';
   } else {
     H.x = lerp(H.x, info[0].x, 0.6); H.mode = 'pos';
   }
@@ -978,7 +882,7 @@ function setState(s) {
   setBig('');
 }
 
-const GAUGE_MAX = 240 / KPH;                    // 240 km/h in m/s
+const GAUGE_MAX = 240 / KPH;
 let fps = 60, lastCtl = '';
 function hudTick() {
   if (state === 'menu' || state === 'garage') return;
@@ -1011,7 +915,7 @@ function resetRun() {
   vehTimer = 0.4; barTimer = 3;
   car.x = 0; car.lv = 0; garageAngle = 0;
   for (const o of obstacles) { o.active = false; o.mesh.visible = false; o.lc = null; }
-  for (let i = 0, tries = 0; i < 11 && tries < 80; tries++) if (spawnVehicle(-rand(50, 200))) i++;     // traffic is already on the road
+  for (let i = 0, tries = 0; i < 11 && tries < 80; tries++) if (spawnVehicle(-rand(50, 200))) i++; 
 }
 function startRun() { applyPlayerCar(); resetRun(); setState('countdown'); }
 function startKeyboard() { handMode = false; goGarage(); }
@@ -1039,17 +943,16 @@ function hit(o) {
 const diffNow = () => lerp(CFG.traffic.startDiff, 1, clamp(distance / CFG.traffic.rampMeters, 0, 1));
 const maxSpeed = () => lerp(CFG.speed.maxStart, CFG.speed.maxEnd, diffNow()) * S.top;
 
-/* Is there room for a vehicle of this size at lateral x and distance z (given its speed and the closing speed)? */
 function clearAt(x, z, hw, hl, v, self, m) {
   for (const w of obstacles) {
     if (!w.active || w === self) continue;
     const lx = Math.min(Math.abs(w.x - x), w.lc ? Math.abs(w.lc.x1 - x) : 1e9);
     if (lx > hw + w.hw + 0.7) continue;
-    const dz = z - w.z, wv = w.kind === 'veh' ? w.v : 0;          // dz > 0: w is ahead of us
-    const c = dz >= 0 ? Math.max(0, v - wv) : Math.max(0, wv - v);   // closing speed
+    const dz = z - w.z, wv = w.kind === 'veh' ? w.v : 0;
+    const c = dz >= 0 ? Math.max(0, v - wv) : Math.max(0, wv - v);
     if (Math.abs(dz) < (hl + w.hl + 6 + c * 0.5 + c * c / 14) * m) return false;
   }
-  if (self && z < 0 && Math.abs(car.x - x) < hw + carHW + 0.8) {                    // check the "mirror" for the player
+  if (self && z < 0 && Math.abs(car.x - x) < hw + carHW + 0.8) {
     const c = Math.max(0, speed - v);
     if (-z < (hl + carHL + 6 + c * 0.5 + c * c / 14) * m) return false;
   }
@@ -1104,9 +1007,9 @@ function startLaneChange(o, x1, lane) {
 function decide(o, lead, gap, lv) {
   const sp = o.spec, d = diffNow();
   const needPass = lead && gap < (lead.kind === 'bar' ? 80 : 42) && (lead.kind === 'bar' || lv < o.vd - 1.5);
-  const stuck = lead && lead.kind === 'bar' && o.v < 4;                         // queued behind a barrier: accept a smaller gap
+  const stuck = lead && lead.kind === 'bar' && o.v < 4;
   const base = (o.pers === 'aggressive' ? 0.35 : o.pers === 'calm' ? 0.08 : 0.18) * (0.8 + d);
-  if (o.type === 'bike') {                                                      // motorcycles filter between lanes
+  if (o.type === 'bike') {
     if (Math.random() < 0.55 || needPass) {
       const lane = nearestLane(o.x), dirs = needPass ? [1, -1] : (Math.random() < 0.5 ? [1, -1] : [-1, 1]);
       for (const dir of dirs) {
@@ -1120,7 +1023,7 @@ function decide(o, lead, gap, lv) {
   }
   if (!(needPass || Math.random() < base)) return;
   const [lo, hi] = LANES[o.type];
-  const dirs = needPass ? [1, -1] : (Math.random() < 0.5 ? [1, -1] : [-1, 1]);       // Indian traffic overtakes on the right
+  const dirs = needPass ? [1, -1] : (Math.random() < 0.5 ? [1, -1] : [-1, 1]);
   for (const dir of dirs) {
     const nl = o.lane + dir;
     if (nl < lo || nl > hi) continue;
@@ -1131,7 +1034,7 @@ function decide(o, lead, gap, lv) {
   }
 }
 
-function latOverlap(a, b, margin) {                                        // do the paths of a and b (now or after a lane change) overlap sideways?
+function latOverlap(a, b, margin) {
   const ax = a.lc ? [a.x, a.lc.x1] : [a.x], bx = b.lc ? [b.x, b.lc.x1] : [b.x];
   for (const p of ax) for (const q of bx) if (Math.abs(p - q) < a.hw + b.hw + margin) return true;
   return false;
@@ -1147,13 +1050,13 @@ function updateVehicle(o, dt) {
   }
   const lv = lead ? (lead.kind === 'veh' ? lead.v : 0) : 99;
   let target = o.vd;
-  if (lead && gap < (lead.kind === 'bar' ? 80 : 42)) {                      // keep a time gap and always be able to stop in the space left
+  if (lead && gap < (lead.kind === 'bar' ? 80 : 42)) {
     const room = Math.max(0, gap - (4 + o.v * 0.5));
     target = Math.min(target, lv + Math.sqrt(2 * 5 * room));
   }
   o.think -= dt;
   if (!o.lc && o.think <= 0) { o.think = rand(0.4, 1.0); decide(o, lead, gap, lv); }
-  if (o.pers === 'braker' && o.brakeT <= 0 && Math.random() < dt * 0.12) o.brakeT = rand(0.9, 1.6);   // sudden braking for no reason
+  if (o.pers === 'braker' && o.brakeT <= 0 && Math.random() < dt * 0.12) o.brakeT = rand(0.9, 1.6);
   if (o.brakeT > 0) { o.brakeT -= dt; target = Math.min(target, o.vd * 0.45); }
   const dv = target - o.v;
   const maxDec = (lead && gap < 14 + o.v * 0.6) ? 14 : (o.brakeT > 0 ? 7 : 5.5);
@@ -1252,7 +1155,7 @@ function overStep(dt) {
   if (overT > 0.7 && $('over').hidden) $('over').hidden = false;
   if (!handMode || overT < 0.8) return;
   const fisting = handFresh() && H.fist;
-  if (!fistArmed) { if (!fisting) fistArmed = true; fistHold = 0; }        // the fist must be released first
+  if (!fistArmed) { if (!fisting) fistArmed = true; fistHold = 0; }
   else fistHold = fisting ? fistHold + dt : 0;
   $('holdBar').style.width = clamp(fistHold / 1.5, 0, 1) * 100 + '%';
   if (fistHold >= 1.5) startRun();
@@ -1336,11 +1239,11 @@ function updateVisuals(dt) {
   shake = Math.max(0, shake - dt * 2.2);
   const sx = (Math.random() - 0.5) * shake * 0.4, sy = (Math.random() - 0.5) * shake * 0.4;
   const k = Math.min(1, (G ? 4 : 5) * dt);
-  camBase.x = lerp(camBase.x, G ? 0 : car.x * 0.6, k); camBase.y = lerp(camBase.y, G ? Math.max(1.9, 0.8 + garageDistance * 0.2) : driveHeight, k); camBase.z = lerp(camBase.z, G ? garageDistance : driveDistance, k);
+  camBase.x = lerp(camBase.x, G ? 0 : car.x * 0.6, k); camBase.y = lerp(camBase.y, G ? Math.max(1.9, 0.8 + garageDistance * 0.2) : driveHeight, k); camBase.z = lerp(camBase.z, G ? garageDistance : 7.4, k);
   camLook.x = lerp(camLook.x, G ? 0 : car.x * 0.35, k); camLook.y = lerp(camLook.y, G ? 0.8 : 1.1, k); camLook.z = lerp(camLook.z, G ? 0 : -18, k);
   camera.position.set(camBase.x + sx, camBase.y + sy, camBase.z);
   camera.lookAt(camLook.x, camLook.y, camLook.z);
-  camera.rotateZ(-clamp(car.lv * 0.0025, -0.04, 0.04));                 // gentle lean into the steering
+  camera.rotateZ(-clamp(car.lv * 0.0025, -0.04, 0.04));
   camera.fov = G ? 48 : 54 + clamp(speed / CFG.speed.maxEnd, 0, 1) * 8;
   camera.updateProjectionMatrix();
 
@@ -1361,7 +1264,7 @@ function frame(t) {
   renderer.render(scene, camera);
 
   fpsAcc += raw; fpsFrames++;
-  if (fpsAcc >= 0.8) {                                                  // adaptive resolution: step down quickly when the frame rate is poor
+  if (fpsAcc >= 0.8) {
     fps = fpsFrames / fpsAcc; fpsAcc = 0; fpsFrames = 0;
     if (settle > 0) settle -= 0.8;
     else if (fps < 46 && Q.level < Q.levels.length - 1) {
@@ -1397,7 +1300,7 @@ $('btnHand').onclick = async () => {
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'playing' && !paused) togglePause(); });
 
 $('ver').textContent = VERSION + (gpuName ? '. Graphics: ' + gpuName : '');
-if (softGL) $('menuStatus').textContent = 'Your browser is drawing with software graphics, which is slow. Turn on hardware acceleration in the browser settings (Chrome: Settings, System, "Use graphics acceleration when available"), then restart the browser.';
+if (softGL) $('menuStatus').textContent = 'Your browser is drawing with software graphics, which is slow. Turn on hardware acceleration in the browser settings (Chrome: Settings, System, "Use graphics acceleration when available").';
 else if (location.protocol === 'file:') $('menuStatus').textContent = 'Tip: run start-server.bat and open http://localhost:8000 for reliable camera access.';
 applyQuality();
 setInterval(hudTick, 100);
